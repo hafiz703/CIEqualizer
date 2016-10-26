@@ -40,10 +40,12 @@ import javafx.scene.chart.XYChart.Data;
 import javafx.scene.chart.XYChart.Series;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.Separator;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToolBar;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableColumn.CellEditEvent;
 import javafx.scene.control.TablePosition;
@@ -98,6 +100,8 @@ public class DraggingLineChartMain extends Application {
 		
 		
     	BorderPane root = new BorderPane();
+    	
+    	
         Scene scene  = new Scene(root,800,600);
         //scene.getStylesheets().add("stylesheet.css");
         //root.getStylesheets().add(getClass().getResource("../stylesheet.css").toExternalForm());
@@ -341,6 +345,15 @@ public class DraggingLineChartMain extends Application {
 	            }
 	        });
 	    
+	    Button importBtn = new Button ("Import");
+	    Button save = new Button ("Save");
+	    ToolBar toolBar1 = new ToolBar();
+        toolBar1.getItems().addAll(
+                new Separator(),
+                importBtn
+               
+            );
+    	root.setTop(toolBar1);
         
         HBox hBox1 = new HBox(1);        
         hBox1.getChildren().addAll(lineChart,tableView);      
@@ -348,16 +361,6 @@ public class DraggingLineChartMain extends Application {
         root.setLeft(hBox1);       
         //root.getChildren().add(hBox);
      
-        
-       
-//        Button restart = new Button();
-//        restart.setOnAction(e -> {
-//        	//primaryStage.close();
-//        	primaryStage.centerOnScreen();
-//         });
-
-          
-		
         
         
         HBox buttBox = new HBox(490);
