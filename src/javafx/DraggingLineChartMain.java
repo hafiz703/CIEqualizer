@@ -1,11 +1,14 @@
 package javafx;
 
+import java.awt.Desktop;
 import java.awt.Insets;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -65,6 +68,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
@@ -75,7 +79,7 @@ public class DraggingLineChartMain extends Application {
 	public static double[][] d65 = parseCSV("res\\data.csv");
     public static volatile int globalInt=1;
     public static ObservableList entry;
-    
+    private Desktop desktop = Desktop.getDesktop();
 //	public static SuperScatterChart  CIEScatter;    
 //	public static TableView<ResultView> tableResult = new TableView<>();
 //  public static List list = new ArrayList();
@@ -84,16 +88,17 @@ public class DraggingLineChartMain extends Application {
 //	public static DataHandler datahandler = new DataHandler();
 //	public static XYChart.Series<Number, Number> series;
 //	private static TableView<Data<Number, Number>> tableView = new TableView<>();
-    public static ArrayList<XYChart.Series<Number, Number>> seriesHistory = new ArrayList<XYChart.Series<Number, Number>>();
+//    public static ArrayList<XYChart.Series<Number, Number>> seriesHistory = new ArrayList<XYChart.Series<Number, Number>>();
 	@Override
     public void start(Stage primaryStage) {
 		TableView<Data<Number, Number>> tableView = new TableView<>();
 		LineChart<Number,Number> lineChart;
 		XYChart.Series<Number, Number> series;
 		List list = new ArrayList();
-		DataHandler datahandler = new DataHandler();
+		DataHandler datahandler = new DataHandler(d65);
 		TableView<ResultView> tableResult = new TableView<>();
 		SuperScatterChart  CIEScatter;
+		ArrayList<XYChart.Series<Number, Number>> seriesHistory = new ArrayList<XYChart.Series<Number, Number>>();
 		
 		
 
@@ -307,12 +312,11 @@ public class DraggingLineChartMain extends Application {
         
         Button delBtn = new Button ("Delete");
         delBtn.setStyle("-fx-font: 15 arial; -fx-base: #b6e7c9;");
-        addBtn.setStyle("-fx-font: 15 arial; -fx-base: #b6e7c9;");
-
-    	    
+        addBtn.setStyle("-fx-font: 15 arial; -fx-base: #b6e7c9;");   	    
     	
-	        delBtn.setOnAction(new EventHandler<ActionEvent>() {
-	            @Override public void handle(ActionEvent e) {
+	    delBtn.setOnAction(new EventHandler<ActionEvent>() {
+	    	public void handle(ActionEvent e) {
+	            if(globalInt>=1){
 	            	int start = 1;
 	            	globalInt--;
 	            	lineChart.setTitle("Equalizer (Plot "+globalInt+")");
@@ -321,6 +325,7 @@ public class DraggingLineChartMain extends Application {
 	                Selected = tableResult.getSelectionModel().getSelectedItems();
 	                
 	                int index = Selected.get(0).getNumb()-1;
+	                 
 	                CIEScatter.getData().remove(index);
 	                
 	                
@@ -343,14 +348,37 @@ public class DraggingLineChartMain extends Application {
 	            	
 	                
 	            }
-	        });
+	    	}
+	    });
 	    
 	    Button importBtn = new Button ("Import");
+	    importBtn.setOnAction(new EventHandler<ActionEvent>() {
+
+			@Override
+			public void handle(ActionEvent arg0) {
+				final FileChooser fileChooser = new FileChooser();
+				configureFileChooser(fileChooser);
+                File file = fileChooser.showOpenDialog(primaryStage);
+                if (file != null) {
+                    String input = file.toPath().toString();
+                    ImportHandler ih  = new ImportHandler(input,d65);
+                    DataHandler dh_import = new DataHandler(d65);
+                    for(int i=0;i<ih.inputSeries.size();i++){
+                    	globalInt+=1;
+                    	display_import(ih.inputSeries.get(i), list, dh_import, tableResult, CIEScatter);
+                    	
+                    }
+                }
+				
+			}
+	    	
+	    });
 	    Button save = new Button ("Save");
 	    ToolBar toolBar1 = new ToolBar();
-        toolBar1.getItems().addAll(
+        toolBar1.getItems().addAll(                
+                importBtn,
                 new Separator(),
-                importBtn
+                save
                
             );
     	root.setTop(toolBar1);
@@ -422,7 +450,7 @@ public class DraggingLineChartMain extends Application {
         tableResult.setItems(entry);
     }
     public static void dynamicTableRow(XYChart.Series<Number, Number> series,List list , DataHandler datahandler,TableView<ResultView> tableResult,SuperScatterChart CIEScatter){
-    	double[][] d65r = datahandler.multiplyReflectance(series, d65);
+    	double[][] d65r = datahandler.multiplyReflectance(series);
     	datahandler.calc(d65r);
     	XYChart.Series<Number, Number> series1 = new XYChart.Series<Number, Number>();	
         //series1 = new XYChart.Series();
@@ -452,6 +480,21 @@ public class DraggingLineChartMain extends Application {
         entry = FXCollections.observableList(list);      
         
         tableResult.setItems(entry);
+    }
+    
+    public static void display_import(XYChart.Series<Number, Number> series,List list , DataHandler datahandler,TableView<ResultView> tableResult,SuperScatterChart CIEScatter){
+    	double[][] d65r = datahandler.multiplyReflectance(series);
+    	datahandler.calc(d65r);
+    	XYChart.Series<Number, Number> series1 = new XYChart.Series<Number, Number>();	
+    	series1.getData().add(new XYChart.Data<Number,Number>(datahandler.x,datahandler.y));
+    	CIEScatter.getData().add(series1);
+    	
+    	list.add(new ResultView(globalInt,datahandler.x,datahandler.y,datahandler.R,datahandler.G,datahandler.B,datahandler.hex));
+        System.out.println(globalInt+" "+ datahandler.x+" "+datahandler.y+" "+datahandler.R+" "+datahandler.G+" "+datahandler.B+" "+datahandler.hex);
+        entry = FXCollections.observableList(list);      
+        
+        tableResult.setItems(entry);
+        
     }
     
     public static double[][] parseCSV(String uri){
@@ -491,6 +534,29 @@ public class DraggingLineChartMain extends Application {
         launch(args);
         
     }
+    
+    private static void configureFileChooser(
+            final FileChooser fileChooser) {      
+                fileChooser.setTitle("View Pictures");
+                fileChooser.setInitialDirectory(
+                    new File(System.getProperty("user.home"))
+                );                 
+                fileChooser.getExtensionFilters().addAll(
+//                    new FileChooser.ExtensionFilter("All Images", "*.*"),
+                    new FileChooser.ExtensionFilter("CSV", "*.csv")
+//                    new FileChooser.ExtensionFilter("PNG", "*.png")
+                );
+        }
+     
+        private void openFile(File file) {
+            try {
+                desktop.open(file);
+            } catch (IOException ex) {
+                Logger.getLogger(FileChooserSample.class.getName()).log(
+                    Level.SEVERE, null, ex
+                );
+            }
+        }
 }
 
 class EditingCell extends TableCell<XYChart.Data, Number> {
@@ -561,6 +627,8 @@ class EditingCell extends TableCell<XYChart.Data, Number> {
     private String getString() {
         return getItem() == null ? "" : getItem().toString();
     }
+    
+    
 }
 
 class SuperScatterChart extends ScatterChart<Number, Number>{

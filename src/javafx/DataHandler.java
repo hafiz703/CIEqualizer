@@ -19,18 +19,18 @@ public class DataHandler {
 	int G;
 	int B;
 	String hex;
-	//double[][] d65;
+	double[][] d65;
 	public XYChart.Series<Number, Number> savedSeries;
-	public DataHandler(){
+	public DataHandler(double[][] d65data){
 		//series1 = new XYChart.Series<Number, Number>();		
-		//this.d65 = parseCSV(uri);
+		this.d65 = d65data;
 		
 	}
  
 	
 	
 	
-	public double[][] multiplyReflectance(XYChart.Series<Number,Number> seriesdata,double[][] d65data){
+	public double[][] multiplyReflectance(XYChart.Series<Number,Number> seriesdata){
 		double[][] result=new double[471][3];
 		int max = seriesdata.getData().get(seriesdata.getData().size()-1).getXValue().intValue();
 		int min = seriesdata.getData().get(0).getXValue().intValue();
@@ -45,9 +45,9 @@ public class DataHandler {
 					//System.out.println("j: "+j);
 					//System.out.println("d65x: "+d65data[z][2]+" z: "+z+" wave: "+wlength);
 					
-					result[z][0] = d65data[z][2]*reflectancePoints[j][1];
-					result[z][1] = d65data[z][3]*reflectancePoints[j][1];
-					result[z][2] = d65data[z][4]*reflectancePoints[j][1];
+					result[z][0] = d65[z][2]*reflectancePoints[j][1];
+					result[z][1] = d65[z][3]*reflectancePoints[j][1];
+					result[z][2] = d65[z][4]*reflectancePoints[j][1];
 					z++;
 					
 					
