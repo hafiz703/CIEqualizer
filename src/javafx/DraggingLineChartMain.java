@@ -2,6 +2,7 @@ package javafx;
 
 import java.awt.Desktop;
 import java.awt.Insets;
+import java.awt.image.BufferedImage;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,8 +10,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.imageio.ImageIO;
+
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 
 import com.opencsv.CSVReader;
@@ -25,14 +30,17 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.fxml.FXML;
 import javafx.geometry.Point2D;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Cursor;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.SnapshotParameters;
 import javafx.scene.chart.AreaChart;
 import javafx.scene.chart.Axis;
 import javafx.scene.chart.LineChart;
@@ -57,6 +65,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -76,26 +85,18 @@ import javafx.util.StringConverter;
 public class DraggingLineChartMain extends Application {
 
 
-	public static double[][] d65 = parseCSV("res\\data.csv");
+	//public static double[][] d65 = parseCSV("src/data.csv");
     public static volatile int globalInt=1;
     public static ObservableList entry;
     private Desktop desktop = Desktop.getDesktop();
-//	public static SuperScatterChart  CIEScatter;    
-//	public static TableView<ResultView> tableResult = new TableView<>();
-//  public static List list = new ArrayList();
-//  public static LineChart<Number,Number> lineChart;
-//  public static XYChart.Series<Number, Number> series1;/* = new XYChart.Series<Number, Number>();*/
-//	public static DataHandler datahandler = new DataHandler();
-//	public static XYChart.Series<Number, Number> series;
-//	private static TableView<Data<Number, Number>> tableView = new TableView<>();
-//    public static ArrayList<XYChart.Series<Number, Number>> seriesHistory = new ArrayList<XYChart.Series<Number, Number>>();
+
 	@Override
     public void start(Stage primaryStage) {
 		TableView<Data<Number, Number>> tableView = new TableView<>();
 		LineChart<Number,Number> lineChart;
 		XYChart.Series<Number, Number> series;
 		List list = new ArrayList();
-		DataHandler datahandler = new DataHandler(d65);
+		DataHandler datahandler = new DataHandler();
 		TableView<ResultView> tableResult = new TableView<>();
 		SuperScatterChart  CIEScatter;
 		ArrayList<XYChart.Series<Number, Number>> seriesHistory = new ArrayList<XYChart.Series<Number, Number>>();
@@ -110,8 +111,9 @@ public class DraggingLineChartMain extends Application {
         Scene scene  = new Scene(root,800,600);
         //scene.getStylesheets().add("stylesheet.css");
         //root.getStylesheets().add(getClass().getResource("../stylesheet.css").toExternalForm());
-        root.getStylesheets().add("stylesheet.css");
-        //root.getStylesheets().add(getClass().getResource("../stylesheet.css").toExternalForm());
+        //root.getStylesheets().add("stylesheet.css");
+        
+        root.getStylesheets().add(getClass().getResource("/stylesheet.css").toExternalForm());
         
 		final NumberAxis xAxis2 = new NumberAxis(0, 0.9, 0.1);//0.73
 	    final NumberAxis yAxis2 = new NumberAxis(0, 0.9, 0.1);//0.83     
@@ -302,6 +304,10 @@ public class DraggingLineChartMain extends Application {
                 entry = FXCollections.observableList(list);     
                 
                 tableResult.setItems(entry);
+                //////////////////////////////////////////////////////////////
+                
+                 
+                
                 //CIEScatter.getData().retainAll(series1);
                 XYChart.Series<Number, Number> seriesx = new XYChart.Series<Number, Number>();
         		seriesx.getData().add(new XYChart.Data(datahandler.x,datahandler.y));
@@ -309,6 +315,33 @@ public class DraggingLineChartMain extends Application {
                 
             }
         });
+        
+        Button saveValue = new Button ("Save Values");
+        saveValue.setStyle("-fx-font: 15 arial; -fx-base: #b6e7c9;");
+        saveValue.setStyle("-fx-font: 15 arial; -fx-base: #b6e7c9;");
+        saveValue.setOnAction(new EventHandler<ActionEvent>() {
+	    	public void handle(ActionEvent e) {
+	    		FileChooser fileChooser = new FileChooser();
+	    		  
+	              //Set extension filter
+	              FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.csv)", "*.csv");
+	              fileChooser.getExtensionFilters().add(extFilter);
+	              
+	              //Show save file dialog
+	              File file = fileChooser.showSaveDialog(primaryStage);
+	              
+	              if(file != null){
+	            	  ObservableList<ResultView> allContents;
+	                  allContents = tableResult.getItems();
+	                  String fin = "Plot Number,x,y,R,G,B,Hex"+System.lineSeparator();
+	                  for(ResultView i:allContents){
+	                	fin += i.getNumb()+","+i.getX()+","+i.getY()+","+i.getRval()+","+i.getGval()+","+i.getBval()+","+i.getHex()+System.lineSeparator();	                  	  
+	                  }
+	                  
+	                  SaveFile(fin,file);
+	              }
+	    	}
+	    });
         
         Button delBtn = new Button ("Delete");
         delBtn.setStyle("-fx-font: 15 arial; -fx-base: #b6e7c9;");
@@ -351,6 +384,24 @@ public class DraggingLineChartMain extends Application {
 	    	}
 	    });
 	    
+	    Button saveCIE = new Button("Save CIE Plot");
+	    saveCIE.setOnAction(new EventHandler<ActionEvent>() {
+	    	public void handle(ActionEvent e) {
+	    		FileChooser fileChooser = new FileChooser();
+	    		  
+	              //Set extension filter
+	              FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("PNG files (*.png)", "*.png");
+	              fileChooser.getExtensionFilters().add(extFilter);
+	              
+	              //Show save file dialog
+	              File file = fileChooser.showSaveDialog(primaryStage);
+	              
+	              if(file != null){	            	   
+	                  saveAsPng(CIEScatter,file);
+	            	  
+	              }
+	    	}
+	    });
 	    Button importBtn = new Button ("Import");
 	    importBtn.setOnAction(new EventHandler<ActionEvent>() {
 
@@ -361,8 +412,8 @@ public class DraggingLineChartMain extends Application {
                 File file = fileChooser.showOpenDialog(primaryStage);
                 if (file != null) {
                     String input = file.toPath().toString();
-                    ImportHandler ih  = new ImportHandler(input,d65);
-                    DataHandler dh_import = new DataHandler(d65);
+                    ImportHandler ih  = new ImportHandler(input);
+                    DataHandler dh_import = new DataHandler();
                     for(int i=0;i<ih.inputSeries.size();i++){
                     	globalInt+=1;
                     	display_import(ih.inputSeries.get(i), list, dh_import, tableResult, CIEScatter);
@@ -373,12 +424,16 @@ public class DraggingLineChartMain extends Application {
 			}
 	    	
 	    });
-	    Button save = new Button ("Save");
+	    //Button saveImg = new Button ("Save CIE Diagram");
+	    
+	    
+	    	
 	    ToolBar toolBar1 = new ToolBar();
         toolBar1.getItems().addAll(                
                 importBtn,
                 new Separator(),
-                save
+                saveCIE
+                 
                
             );
     	root.setTop(toolBar1);
@@ -391,8 +446,8 @@ public class DraggingLineChartMain extends Application {
      
         
         
-        HBox buttBox = new HBox(490);
-        buttBox.getChildren().addAll(addBtn,delBtn);        
+        HBox buttBox = new HBox(175);
+        buttBox.getChildren().addAll(addBtn,saveValue,delBtn);        
         VBox vBox2 = new VBox(10);
         vBox2.getChildren().addAll(CIEScatter,tableResult,buttBox);    
          
@@ -403,7 +458,29 @@ public class DraggingLineChartMain extends Application {
         primaryStage.show();
     }
 	
+	private void SaveFile(String content, File file){
+        try {
+            FileWriter fileWriter = null;
+             
+            fileWriter = new FileWriter(file);
+            fileWriter.write(content);
+            fileWriter.close();
+        } catch (IOException ex) {
+            //Logger.getLogger(JavaFX_Text.class.getName()).log(Level.SEVERE, null, ex);
+        }
+         
+    }
+	
+	@FXML
+	public void saveAsPng(SuperScatterChart  CIEScatter,File file) {
+	    WritableImage image = CIEScatter.snapshot(new SnapshotParameters(), null);
 
+	    try {
+	        ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", file);
+	    } catch (IOException e) {
+	        // TODO: handle exception here
+	    }
+	}
     
     public static void InteractiveNodes(Data<Number, Number> data,NumberAxis xAxis,NumberAxis yAxis,XYChart.Series<Number, Number> series,List list,DataHandler datahandler,TableView<ResultView> tableResult,SuperScatterChart CIEScatter){
     	Node node = data.getNode() ;
@@ -476,7 +553,7 @@ public class DraggingLineChartMain extends Application {
         //List list = new ArrayList();
         list.remove(globalInt-1);
         list.add(new ResultView(globalInt,datahandler.x,datahandler.y,datahandler.R,datahandler.G,datahandler.B,datahandler.hex));
-        System.out.println(globalInt+" "+ datahandler.x+" "+datahandler.y+" "+datahandler.R+" "+datahandler.G+" "+datahandler.B+" "+datahandler.hex);
+        //System.out.println(globalInt+" "+ datahandler.x+" "+datahandler.y+" "+datahandler.R+" "+datahandler.G+" "+datahandler.B+" "+datahandler.hex);
         entry = FXCollections.observableList(list);      
         
         tableResult.setItems(entry);
@@ -490,7 +567,7 @@ public class DraggingLineChartMain extends Application {
     	CIEScatter.getData().add(series1);
     	
     	list.add(new ResultView(globalInt,datahandler.x,datahandler.y,datahandler.R,datahandler.G,datahandler.B,datahandler.hex));
-        System.out.println(globalInt+" "+ datahandler.x+" "+datahandler.y+" "+datahandler.R+" "+datahandler.G+" "+datahandler.B+" "+datahandler.hex);
+        //System.out.println(globalInt+" "+ datahandler.x+" "+datahandler.y+" "+datahandler.R+" "+datahandler.G+" "+datahandler.B+" "+datahandler.hex);
         entry = FXCollections.observableList(list);      
         
         tableResult.setItems(entry);
@@ -629,6 +706,8 @@ class EditingCell extends TableCell<XYChart.Data, Number> {
     }
     
     
+    
+    
 }
 
 class SuperScatterChart extends ScatterChart<Number, Number>{
@@ -637,7 +716,8 @@ class SuperScatterChart extends ScatterChart<Number, Number>{
 
     public SuperScatterChart(NumberAxis xAxis, NumberAxis yAxis) {
         super(xAxis, yAxis);
-        iv1 = new ImageView(new Image("file:res/cietrace1.png",905,1090,false,true));
+        //iv1 = new ImageView(new Image("file:res/cietrace1.png",905,1090,false,true));
+        iv1 = new ImageView(new Image(getClass().getResourceAsStream("/cietrace1.png"),825,1090,false,true)); 
         getPlotChildren().add(iv1);
     }
 		
@@ -650,6 +730,16 @@ class SuperScatterChart extends ScatterChart<Number, Number>{
 
         super.layoutPlotChildren();
     }
+    
+    public static void saveToFile(Image image) {
+        File outputFile = new File("C:/JavaFX/");
+        BufferedImage bImage = SwingFXUtils.fromFXImage(image, null);
+        try {
+          ImageIO.write(bImage, "png", outputFile);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
 		
 		
 		
